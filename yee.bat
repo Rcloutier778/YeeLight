@@ -1,2 +1,2 @@
 @echo off
-python "C:\Users\Richard\Documents\Coding Projects\YeeLight\yeelightpython.py" %*
+py -3.7 "C:\Users\Richard\Documents\Coding Projects\YeeLight\yeelightpython.py" %*

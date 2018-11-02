@@ -6,6 +6,8 @@ import sys
 import datetime
 import pytz
 from tzlocal import get_localzone
+import SysTrayIcon as sysTray
+
 
 risetime=140 #seconds
 stand = yeelight.Bulb("10.0.0.5")
@@ -16,6 +18,12 @@ allcommands=commands + ['bright','brightness','rgb']
 
 eastern = pytz.timezone('EST')
 
+#TODO
+"""
+1) autoset on wakeup from lan
+2) cortana integration
+3) system tray application so you don't have to open cmd and type the command in
+"""
 
 
 
@@ -121,4 +129,26 @@ def autoset():
         off()
 
 if __name__ == "__main__":
-    main()
+    #Run the system tray app
+    if sys.argv[1].lower() == 'systray':
+        import glob, itertools
+        ico=itertools.cycle(glob.glob('icons/*.ico'))
+
+        def systrayday(sysTray):
+            day()
+        def systraydusk(sysTray):
+            dusk()
+        def systraynight(sysTray):
+            night()
+        def systraysleep(sysTray):
+            sleep()
+        
+        menu_options= (('Day', next(ico), systrayday),
+                       ('Dusk', next(ico), systraydusk),
+                       ('Night', next(ico), systraynight),
+                       ('Sleep', next(ico), systraysleep))
+        
+        sysTray.SysTrayIcon(next(ico),'hover',menu_options, on_quit=print("bye"))
+    else:
+        #run the python script
+        main()
