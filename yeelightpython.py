@@ -22,7 +22,6 @@ eastern = pytz.timezone('EST')
 """
 1) autoset on wakeup from lan
 2) cortana integration
-3) system tray application so you don't have to open cmd and type the command in
 """
 
 
@@ -132,15 +131,15 @@ if __name__ == "__main__":
     #Run the system tray app
     if sys.argv[1].lower() == 'systray':
         import glob, itertools
-        ico=itertools.cycle(glob.glob('icons/*.ico'))
+        ico=itertools.cycle(glob.glob('C:/Users/Richard/Documents/Coding Projects/YeeLight/icons/*.ico'))
 
-        def systrayday(sysTray):
+        def systrayday(SysTrayIcon):
             day()
-        def systraydusk(sysTray):
+        def systraydusk(SysTrayIcon):
             dusk()
-        def systraynight(sysTray):
+        def systraynight(SysTrayIcon):
             night()
-        def systraysleep(sysTray):
+        def systraysleep(SysTrayIcon):
             sleep()
         
         menu_options= (('Day', next(ico), systrayday),
