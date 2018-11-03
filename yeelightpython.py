@@ -27,7 +27,6 @@ eastern = pytz.timezone('EST')
     Currently starts at low red, turns off for whatever reason, then goes from 1500k to 4800k temp color.
     Need to do this in hue/sat or rgb instead I think
 5) Brightness slider in system tray
-6) Left click system tray for lights toggle
 """
 
 def main():
@@ -147,6 +146,8 @@ if __name__ == "__main__":
             night()
         def systraysleep(SysTrayIcon):
             sleep()
+        def systraytoggle(SysTrayIcon):
+            toggle()
         #TODO on left click, toggle lights
         #TODO brightness slider
         
@@ -155,7 +156,7 @@ if __name__ == "__main__":
                        ('Night', next(ico), systraynight),
                        ('Sleep', next(ico), systraysleep))
         
-        sysTray.SysTrayIcon(next(ico),'Light controller',menu_options, on_quit=print("bye"))
+        sysTray.SysTrayIcon(next(ico),'Light controller',menu_options, icon_lclick=systraytoggle)
     else:
         #run the python script
         main()

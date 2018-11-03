@@ -31,7 +31,7 @@ class SysTrayIcon(object):
                  hover_text,
                  menu_options,
                  on_quit=None,
-                 default_menu_index=None,
+                 icon_lclick=None,
                  window_class_name=None,):
 
         self.icon = icon
@@ -45,8 +45,7 @@ class SysTrayIcon(object):
         self.menu_actions_by_id = dict(self.menu_actions_by_id)
         del self._next_action_id
 
-
-        self.default_menu_index = (default_menu_index or 0)
+        self.icon_lclick = icon_lclick
         self.window_class_name = window_class_name or "SysTrayIconPy"
 
         message_map = {win32gui.RegisterWindowMessage("TaskbarCreated"): self.restart,
@@ -132,9 +131,11 @@ class SysTrayIcon(object):
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
         win32gui.PostQuitMessage(0) # Terminate the app.
 
+    #User events on the system tray icon itself
     def notify(self, hwnd, msg, wparam, lparam):
-        if lparam==win32con.WM_LBUTTONDBLCLK:
-            self.execute_menu_option(self.default_menu_index + self.FIRST_ID)
+        if lparam==win32con.WM_LBUTTONDBLCLK: #Doubleclick the icon
+            if callable(self.icon_lclick):
+                self.icon_lclick(self)
         elif lparam==win32con.WM_RBUTTONUP:
             self.show_menu()
         elif lparam==win32con.WM_LBUTTONUP:
@@ -237,4 +238,4 @@ if __name__ == '__main__':
                    )
     def bye(sysTrayIcon): print('Bye, then.')
 
-    SysTrayIcon(next(icons), hover_text, menu_options, on_quit=bye, default_menu_index=1)
+    SysTrayIcon(next(icons), hover_text, menu_options, on_quit=bye)
