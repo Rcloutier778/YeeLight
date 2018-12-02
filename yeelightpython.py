@@ -4,8 +4,6 @@ import yeelight.transitions
 import yeelight.enums
 import sys
 import datetime
-import pytz
-from tzlocal import get_localzone
 import SysTrayIcon as sysTray
 
 
@@ -16,7 +14,6 @@ b=[stand,desk]
 commands=['dusk','day','night','sleep', 'off', 'on','toggle','sunrise','autoset']
 allcommands=commands + ['bright','brightness','rgb']
 
-eastern = pytz.timezone('EST')
 
 #TODO
 """
@@ -51,11 +48,10 @@ def sunrise():
     for i in b:
         i.set_brightness(1)
         i.set_color_temp(0)
-        i.set_hsv(0,100)
         i.turn_on()
         i.start_flow(yeelight.Flow(count=1,
                                    action=yeelight.Flow.actions.stay,
-                                   transitions=[yeelight.TemperatureTransition(4800, 900000, 100)]))
+                                   transitions=[yeelight.TemperatureTransition(3600, 900000, 100)]))
 
 def brightness(val):
     for i in b:
@@ -63,7 +59,7 @@ def brightness(val):
 
 def day(duartion=3000):
     on()
-    colorTempFlow(4800, duartion, 80)
+    colorTempFlow(3200, duartion, 80)
 
 def dusk(duartion=3000):
     on()
@@ -89,7 +85,7 @@ def toggle():
     for i in b:
         i.toggle()
 
-def colorTempFlow(temperature=6700,duration=3000, brightness=80):
+def colorTempFlow(temperature=3200,duration=3000, brightness=80):
     #control all lights at once
     #makes things look more condensed
     transition=yeelight.TemperatureTransition(degrees=temperature,duration=duration,brightness=brightness)
@@ -114,27 +110,36 @@ def discoverBulbs():
     
 def autoset():
     #set light level when computer is woken up, based on time of day
-    rn=datetime.datetime.now(eastern)
+    rn=datetime.datetime.now()
     now=datetime.time(rn.hour,rn.minute)
-    dayrange=[datetime.time(6,0,0),datetime.time(16,0,0)] #7 - 6
+    dayrange=[datetime.time(6,10,0),datetime.time(16,0,0)] #6 - 6
     duskrange=[datetime.time(16,0,0),datetime.time(20,0,0)] # 6 - 9
-    nightrange = [datetime.time(20, 0,0), datetime.time(22, 0,0)] #9-11
-    sleeprange = [datetime.time(22, 0,0), datetime.time(23, 0,0)] #11-12
-    DNDrange = [datetime.time(23, 0,0), datetime.time(5,0,0)] #12 - 6
+    nightrange = [datetime.time(20, 0,0), datetime.time(21, 30,0)] #9-10
+    sleeprange = [datetime.time(21, 30,0), datetime.time(23, 30,0)] #10-12
+    DNDrange = [datetime.time(23,30,0), datetime.time(6,0,0)] #12 - 6
+    print(now)
     if dayrange[0] <= now <= dayrange[1]:
+        print("Day")
         day(10000)
     elif duskrange[0] <= now < duskrange[1]:
+        print("Dusk")
         dusk(10000)
     elif nightrange[0] <= now < nightrange[1]:
+        print("Night")
         night(10000)
     elif sleeprange[0] <= now < sleeprange[1]:
+        print("sleep")
         sleep(10000)
-    elif DNDrange[0] <= now <= DNDrange[1]:
+    elif DNDrange[0] <= now or now < DNDrange[1]:
+        print("dnd")
         off()
+        time.sleep(5)
+        off()
+    return 0
 
 if __name__ == "__main__":
     #Run the system tray app
-    if sys.argv[1].lower() == 'systray':
+    if len(sys.argv) > 1 and sys.argv[1].lower() == 'systray':
         import glob, itertools
         ico=itertools.cycle(glob.glob('C:/Users/Richard/Documents/Coding Projects/YeeLight/icons/*.ico'))
 
