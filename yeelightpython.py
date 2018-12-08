@@ -112,15 +112,25 @@ def autoset():
     #set light level when computer is woken up, based on time of day
     rn=datetime.datetime.now()
     now=datetime.time(rn.hour,rn.minute)
-    dayrange=[datetime.time(6,10,0),datetime.time(16,0,0)] #6 - 6
+    dayrange=[datetime.time(6,50,0),datetime.time(16,0,0)] #6:50 - 6
     duskrange=[datetime.time(16,0,0),datetime.time(20,0,0)] # 6 - 9
     nightrange = [datetime.time(20, 0,0), datetime.time(21, 30,0)] #9-10
     sleeprange = [datetime.time(21, 30,0), datetime.time(23, 30,0)] #10-12
-    DNDrange = [datetime.time(23,30,0), datetime.time(6,0,0)] #12 - 6
+    DNDrange = [datetime.time(23,30,0), datetime.time(6,15,0)] #12 - 6:10
+    weekendrange = [datetime.time(8,30,0),datetime.time(16,0,0)] #8:30 - 6
     print(now)
     if dayrange[0] <= now <= dayrange[1]:
-        print("Day")
-        day(10000)
+        if now.strftime("%a") in ['Sat','Sun']:
+            if weekendrange[0] <= now <= weekendrange[1]:
+                print("Day")
+                day(10000)
+            else:
+                off()
+                time.sleep(5)
+                off()
+        else:
+            print("Day")
+            day(10000)
     elif duskrange[0] <= now < duskrange[1]:
         print("Dusk")
         dusk(10000)
