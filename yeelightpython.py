@@ -46,12 +46,11 @@ def main():
 
 def sunrise():
     for i in b:
-        i.set_brightness(1)
-        i.set_color_temp(0)
         i.turn_on()
-        i.start_flow(yeelight.Flow(count=1,
-                                   action=yeelight.Flow.actions.stay,
-                                   transitions=[yeelight.TemperatureTransition(3600, 900000, 100)]))
+        i.set_brightness(0)
+        i.set_color_temp(0)
+    time.sleep(2)
+    day(1200000) #1200000 == 20min
 
 def brightness(val):
     for i in b:
