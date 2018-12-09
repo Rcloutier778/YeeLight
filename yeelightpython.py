@@ -55,21 +55,21 @@ def brightness(val):
     for i in b:
         i.set_brightness(val)
 
-def day(duartion=3000):
+def day(duration=3000):
     on()
-    colorTempFlow(3200, duartion, 80)
+    colorTempFlow(3200, duration, 80)
 
-def dusk(duartion=3000):
+def dusk(duration=3000):
     on()
-    colorTempFlow(3000, duartion, 80)
-        
-def night(duartion=3000):
+    colorTempFlow(3000, duration, 80)
+    
+def night(duration=3000):
     on()
-    colorTempFlow(2500, duartion, 80)
+    colorTempFlow(2500, duration, 80)
 
-def sleep(duartion=3000):
+def sleep(duration=3000):
     on()
-    colorTempFlow(1500,duartion,20)
+    colorTempFlow(1500,duration,20)
 
 def off():
     for i in b:
@@ -108,28 +108,34 @@ def discoverBulbs():
     
 def autoset():
     #set light level when computer is woken up, based on time of day
-    rn=datetime.datetime.now()
+    rn=datetime.datetime.now() # If there is ever a problem here, just use time.localtime()
     now=datetime.time(rn.hour,rn.minute,0)
-    dayrange=[datetime.time(6,50,0),datetime.time(17,0,0)] #6:50 - 5
-    duskrange=[datetime.time(17,0,0),datetime.time(20,0,0)] # 5 - 8
-    nightrange = [datetime.time(20, 0,0), datetime.time(21, 30,0)] #8-10
-    sleeprange = [datetime.time(21, 30,0), datetime.time(23, 30,0)] #10-12
-    DNDrange = [datetime.time(23,30,0), datetime.time(6,15,0)] #12 - 6:10
-    weekendrange = [datetime.time(8,30,0),datetime.time(17,0,0)] #8:30 - 5
     print(now)
-    if dayrange[0] <= now <= dayrange[1]:
-        if time.localtime().tm_wday in [5,6]: #5=Sat, 6=sun, 0=Monday
-            if weekendrange[0] <= now <= weekendrange[1]:
-                print("Weekend-Day")
-                day(10000)
+    dayrange = ["6:50:AM", "5:00:PM"]
+    if time.localtime().tm_wday in [5, 6]: #weekend
+        print("weekend")
+        dayrange[0] = "8:30:AM"
+    duskrange=[dayrange[1],"8:00:PM"]
+    nightrange=[duskrange[1],"10:00:PM"]
+    sleeprange=[nightrange[1],"11:30:PM"]
+    DNDrange=[sleeprange[1],dayrange[0]]
+    ranges=[dayrange,duskrange,nightrange,sleeprange,DNDrange]
+    for r in ranges:
+        for rr in range(0,2):
+            t=r[rr].split(":")
+            if t[2] == 'PM':
+                t[0] = int(t[0]) + 12
             else:
-                print("Weekend-dnd")
-                off()
-                time.sleep(5)
-                off()
-        else:
-            print("Day")
-            day(10000)
+                t[0] = int(t[0])
+            t[1]=int(t[1])
+            r[rr]=datetime.time(t[0],t[1],0)
+            datetime.time()
+    for i in ranges:
+        print(i)
+    print(dayrange[0].strftime("%H:%M:%S"))
+    if dayrange[0] <= now < dayrange[1]:
+        print("Day")
+        day(10000)
     elif duskrange[0] <= now < duskrange[1]:
         print("Dusk")
         dusk(10000)
