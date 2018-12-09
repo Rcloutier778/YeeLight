@@ -7,7 +7,6 @@ import datetime
 import SysTrayIcon as sysTray
 
 
-risetime=140 #seconds
 stand = yeelight.Bulb("10.0.0.5")
 desk = yeelight.Bulb("10.0.0.10")
 b=[stand,desk]
@@ -110,20 +109,21 @@ def discoverBulbs():
 def autoset():
     #set light level when computer is woken up, based on time of day
     rn=datetime.datetime.now()
-    now=datetime.time(rn.hour,rn.minute)
-    dayrange=[datetime.time(6,50,0),datetime.time(16,0,0)] #6:50 - 6
-    duskrange=[datetime.time(16,0,0),datetime.time(20,0,0)] # 6 - 9
-    nightrange = [datetime.time(20, 0,0), datetime.time(21, 30,0)] #9-10
+    now=datetime.time(rn.hour,rn.minute,0)
+    dayrange=[datetime.time(6,50,0),datetime.time(17,0,0)] #6:50 - 5
+    duskrange=[datetime.time(17,0,0),datetime.time(20,0,0)] # 5 - 8
+    nightrange = [datetime.time(20, 0,0), datetime.time(21, 30,0)] #8-10
     sleeprange = [datetime.time(21, 30,0), datetime.time(23, 30,0)] #10-12
     DNDrange = [datetime.time(23,30,0), datetime.time(6,15,0)] #12 - 6:10
-    weekendrange = [datetime.time(8,30,0),datetime.time(16,0,0)] #8:30 - 6
+    weekendrange = [datetime.time(8,30,0),datetime.time(17,0,0)] #8:30 - 5
     print(now)
     if dayrange[0] <= now <= dayrange[1]:
-        if now.strftime("%a") in ['Sat','Sun']:
+        if time.localtime().tm_wday in [5,6]: #5=Sat, 6=sun, 0=Monday
             if weekendrange[0] <= now <= weekendrange[1]:
-                print("Day")
+                print("Weekend-Day")
                 day(10000)
             else:
+                print("Weekend-dnd")
                 off()
                 time.sleep(5)
                 off()
