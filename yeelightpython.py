@@ -5,7 +5,14 @@ import yeelight.enums
 import sys
 import datetime
 import SysTrayIcon as sysTray
-
+import os
+import logging
+log=logging.getLogger('log')
+logging.basicConfig(filename='C:/Users/Richard/Documents/Coding Projects/YeeLight/log.log',
+                    filemode='a',
+                    format='%(asctime)s %(name)s %(levelname)s %(message)s',
+                    datefmt='%Y-%m-%d %I:%M:%S%p',
+                    level=logging.DEBUG)
 
 stand = yeelight.Bulb("10.0.0.5")
 desk = yeelight.Bulb("10.0.0.10")
@@ -27,13 +34,23 @@ allcommands=commands + ['bright','brightness','rgb']
 
 def main():
     #print(desk.get_properties())
+    responses=[]
+    for i in range(4):
+         responses.append(os.system("ping -n 1 10.0.0.7"))
+    if 0 not in responses: #timeout, phone not present.
+        print("Phone not present.")
+        log.warning("Phone not present.")
+        off()
+        return
     if len(sys.argv) == 1:
         print("No arguments.")
+        log.warning('No arguments.')
         return
     else:
         cmd=sys.argv[1].lower()
         if cmd in allcommands:
             if cmd in commands:
+                log.info(cmd)
                 globals()[cmd]()
         elif cmd in ['bright','brightness']:
             if type(sys.argv[2]) == int:
