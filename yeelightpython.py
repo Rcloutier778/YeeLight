@@ -5,10 +5,10 @@ import yeelight.enums
 import sys
 import datetime
 import SysTrayIcon as sysTray
-import os
 import logging
-log=logging.getLogger('log')
-logging.basicConfig(filename='C:/Users/Richard/Documents/Coding Projects/YeeLight/log.log',
+import os
+log = logging.getLogger('log')
+logging.basicConfig(filename=os.getcwd()+'/log.log',
                     filemode='a',
                     format='%(asctime)s %(name)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %I:%M:%S%p',
@@ -33,15 +33,16 @@ allcommands=commands + ['bright','brightness','rgb']
 """
 
 def main():
+    print(desk.get_model_specs())
     #print(desk.get_properties())
-    responses=[]
-    for i in range(4):
-         responses.append(os.system("ping -n 1 10.0.0.7"))
-    if 0 not in responses: #timeout, phone not present.
-        print("Phone not present.")
-        log.warning("Phone not present.")
-        off()
-        return
+    #responses=[]
+    #for i in range(4):
+    #     responses.append(os.system("ping -n 1 10.0.0.7"))
+    #if 0 not in responses: #timeout, phone not present.
+    #    print("Phone not present.")
+    #    log.warning("Phone not present.")
+    #    off()
+    #    return
     if len(sys.argv) == 1:
         print("No arguments.")
         log.warning('No arguments.')
@@ -61,44 +62,59 @@ def main():
             print("Command \"%s\" not found"%cmd)
 
 def sunrise():
+    on()
     for i in b:
-        i.turn_on()
         i.set_brightness(0)
-        i.set_color_temp(0)
-    time.sleep(2)
-    day(1200000) #1200000 == 20min
+        i.set_rgb(255, 0, 0)
+    
+    
+    
+    
+    #day(1200000) #1200000 == 20min
 
 def brightness(val):
     for i in b:
         i.set_brightness(val)
 
-def day(duration=3000):
-    on()
+def day(duration=3000,auto=False):
+    if not auto:
+        on()
     colorTempFlow(3200, duration, 80)
 
-def dusk(duration=3000):
-    on()
+def dusk(duration=3000,auto=False):
+    if not auto:
+        on()
     colorTempFlow(3000, duration, 80)
     
-def night(duration=3000):
-    on()
+def night(duration=3000,auto=False):
+    if not auto:
+        on()
     colorTempFlow(2500, duration, 80)
 
-def sleep(duration=3000):
-    on()
+def sleep(duration=3000,auto=False):
+    if not auto:
+        on()
     colorTempFlow(1500,duration,20)
 
 def off():
-    for i in b:
-        i.turn_off()
+    while all(x.get_properties()['power'] != 'off' for x in b):
+        for i in b:
+            i.turn_off()
 
 def on():
-    for i in b:
-        i.turn_on()
+    while all(x.get_properties()['power'] != 'on' for x in b):
+        for i in b:
+            i.turn_on()
         
 def toggle():
-    for i in b:
-        i.toggle()
+    """
+    Doesn't use the built in toggle command in yeelight as it sometimes fails to toggle one of the lights.
+    """
+    oldPower = desk.get_properties()['power']
+    if oldPower == 'off':
+        on()
+    else:
+        off()
 
 def colorTempFlow(temperature=3200,duration=3000, brightness=80):
     #control all lights at once
@@ -124,6 +140,16 @@ def discoverBulbs():
     
     
 def autoset():
+    autosetDuration=10000
+    
+    #Check if system tray has been used recently to override autoset
+    with open(os.getcwd()+'/manualOverride.txt', 'r') as f:
+        ld = f.read().strip()
+    if datetime.datetime.strptime(ld,'%Y-%m-%d %H:%M:%S') + datetime.timedelta(hours=1) > datetime.datetime.utcnow():
+        print("SystemTray used recently, canceling autoset")
+        log.info("SystemTray used recently, canceling autoset")
+        return -1
+    
     #set light level when computer is woken up, based on time of day
     rn=datetime.datetime.now() # If there is ever a problem here, just use time.localtime()
     now=datetime.time(rn.hour,rn.minute,0)
@@ -152,20 +178,18 @@ def autoset():
     print(dayrange[0].strftime("%H:%M:%S"))
     if dayrange[0] <= now < dayrange[1]:
         print("Day")
-        day(10000)
+        day(autosetDuration,True)
     elif duskrange[0] <= now < duskrange[1]:
         print("Dusk")
-        dusk(10000)
+        dusk(autosetDuration,True)
     elif nightrange[0] <= now < nightrange[1]:
         print("Night")
-        night(10000)
+        night(autosetDuration,True)
     elif sleeprange[0] <= now < sleeprange[1]:
         print("sleep")
-        sleep(10000)
+        sleep(autosetDuration,True)
     elif DNDrange[0] <= now or now < DNDrange[1]:
         print("dnd")
-        off()
-        time.sleep(5)
         off()
     return 0
 
@@ -177,6 +201,8 @@ if __name__ == "__main__":
 
         def systrayday(SysTrayIcon):
             day()
+            with open(os.getcwd()+'/manualOverride.txt','w+') as f:
+                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
         def systraydusk(SysTrayIcon):
             dusk()
         def systraynight(SysTrayIcon):
