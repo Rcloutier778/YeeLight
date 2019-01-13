@@ -8,11 +8,11 @@ import SysTrayIcon as sysTray
 import logging
 import os
 log = logging.getLogger('log')
-logging.basicConfig(filename=os.getcwd()+'/log.log',
+logging.basicConfig(filename='C:/Users/Richard/Documents/Coding Projects/YeeLight/log.log',
                     filemode='a',
                     format='%(asctime)s %(name)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %I:%M:%S%p',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 stand = yeelight.Bulb("10.0.0.5")
 desk = yeelight.Bulb("10.0.0.10")
@@ -33,7 +33,6 @@ allcommands=commands + ['bright','brightness','rgb']
 """
 
 def main():
-    print(desk.get_model_specs())
     #print(desk.get_properties())
     #responses=[]
     #for i in range(4):
@@ -62,15 +61,24 @@ def main():
             print("Command \"%s\" not found"%cmd)
 
 def sunrise():
+    #Prevent autoset from taking over
+    with open('C:/Users/Richard/Documents/Coding Projects/YeeLight/manualOverride.txt', 'w+') as f:
+        f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+    overallDuration=1200000 #1200000 == 20 min
     on()
     for i in b:
         i.set_brightness(0)
         i.set_rgb(255, 0, 0)
+    print(desk.get_properties())
+    time.sleep(1)
     
+    transitions=[yeelight.RGBTransition(red=255, green=167, blue=0, duration=overallDuration*0.5, brightness=80),
+                yeelight.TemperatureTransition(degrees=3200, duration=overallDuration*0.5, brightness=80)]
+
+    transitions = [yeelight.HSVTransition(hue=39, saturation=100, duration=overallDuration * 0.5, brightness=80),                   yeelight.TemperatureTransition(degrees=3200, duration=overallDuration * 0.5, brightness=80)]
     
-    
-    
-    #day(1200000) #1200000 == 20min
+    for i in b:
+        i.start_flow(yeelight.Flow(count=1,action=yeelight.Flow.actions.stay,transitions=transitions))
 
 def brightness(val):
     for i in b:
@@ -143,7 +151,7 @@ def autoset():
     autosetDuration=10000
     
     #Check if system tray has been used recently to override autoset
-    with open(os.getcwd()+'/manualOverride.txt', 'r') as f:
+    with open('C:/Users/Richard/Documents/Coding Projects/YeeLight/manualOverride.txt', 'r') as f:
         ld = f.read().strip()
     if datetime.datetime.strptime(ld,'%Y-%m-%d %H:%M:%S') + datetime.timedelta(hours=1) > datetime.datetime.utcnow():
         print("SystemTray used recently, canceling autoset")
@@ -178,18 +186,23 @@ def autoset():
     print(dayrange[0].strftime("%H:%M:%S"))
     if dayrange[0] <= now < dayrange[1]:
         print("Day")
+        log.info("Autoset: Day")
         day(autosetDuration,True)
     elif duskrange[0] <= now < duskrange[1]:
         print("Dusk")
+        log.info("Autoset: Dusk")
         dusk(autosetDuration,True)
     elif nightrange[0] <= now < nightrange[1]:
         print("Night")
+        log.info("Autoset: Night")
         night(autosetDuration,True)
     elif sleeprange[0] <= now < sleeprange[1]:
-        print("sleep")
+        print("Sleep")
+        log.info("Autoset: Sleep")
         sleep(autosetDuration,True)
     elif DNDrange[0] <= now or now < DNDrange[1]:
         print("dnd")
+        log.info("Autoset: dnd")
         off()
     return 0
 
@@ -201,14 +214,20 @@ if __name__ == "__main__":
 
         def systrayday(SysTrayIcon):
             day()
-            with open(os.getcwd()+'/manualOverride.txt','w+') as f:
+            with open('C:/Users/Richard/Documents/Coding Projects/YeeLight/manualOverride.txt','w+') as f:
                 f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
         def systraydusk(SysTrayIcon):
             dusk()
+            with open('C:/Users/Richard/Documents/Coding Projects/YeeLight/manualOverride.txt','w+') as f:
+                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
         def systraynight(SysTrayIcon):
             night()
+            with open('C:/Users/Richard/Documents/Coding Projects/YeeLight/manualOverride.txt','w+') as f:
+                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
         def systraysleep(SysTrayIcon):
             sleep()
+            with open('C:/Users/Richard/Documents/Coding Projects/YeeLight/manualOverride.txt','w+') as f:
+                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
         def systraytoggle(SysTrayIcon):
             toggle()
         #TODO on left click, toggle lights
