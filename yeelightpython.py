@@ -23,6 +23,10 @@ b=[stand,desk]
 commands=['dusk','day','night','sleep', 'off', 'on','toggle','sunrise','autoset','logon']
 allcommands=commands + ['bright','brightness','rgb']
 
+__DAY_COLOR=4000
+__DUSK_COLOR=3300
+__NIGHT_COLOR=2500
+__SLEEP_COLOR=1500
 
 #TODO
 """
@@ -92,23 +96,23 @@ def day(duration=3000,auto=False):
     if not auto:
         on()
     #3200
-    colorTempFlow(4000, duration, 80)
+    colorTempFlow(__DAY_COLOR, duration, 80)
 
 def dusk(duration=3000,auto=False):
     if not auto:
         on()
     #3000
-    colorTempFlow(3000, duration, 80)
+    colorTempFlow(__DUSK_COLOR, duration, 80)
     
 def night(duration=3000,auto=False):
     if not auto:
         on()
-    colorTempFlow(2500, duration, 80)
+    colorTempFlow(__NIGHT_COLOR, duration, 80)
 
 def sleep(duration=3000,auto=False):
     if not auto:
         on()
-    colorTempFlow(1500,duration,20)
+    colorTempFlow(__SLEEP_COLOR,duration,20)
 
 def off():
     while all(x.get_properties()['power'] != 'off' for x in b):
@@ -159,7 +163,7 @@ def logon():
     autoset(autosetDuration=3000)
     return
     
-def autoset(autosetDuration=10000):
+def autoset(autosetDuration=300000):
     if all(x.get_properties()['power']=='off' for x in b):
         log.info('Power is off, cancelling autoset')
         return -1
@@ -176,23 +180,25 @@ def autoset(autosetDuration=10000):
     rn=datetime.datetime.now() # If there is ever a problem here, just use time.localtime()
     now=datetime.time(rn.hour,rn.minute,0)
     print('now:',now)
+    
     dayrange = ["6:50:AM", "6:00:PM"]
     if time.localtime().tm_wday in [5, 6]: #weekend
         print("weekend")
         dayrange[0] = "8:30:AM"
+        
     duskrange=[dayrange[1],"7:45:PM"]
     nightrange=[duskrange[1],"8:30:PM"]
     sleeprange=[nightrange[1],"11:00:PM"]
     DNDrange=[sleeprange[1],dayrange[0]]
-    ranges=[dayrange,duskrange,nightrange,sleeprange,DNDrange]
     
-    for r in ranges:
+    
+    timeranges=[dayrange,duskrange,nightrange,sleeprange,DNDrange]
+    
+    for r in timeranges:
         for rr in range(0,2):
             t = datetime.datetime.strptime(r[rr], "%I:%M:%p")
             r[rr] = datetime.time(t.hour,t.minute,0)
-    for i in ranges:
-        print(i)
-    print(dayrange[0].strftime("%H:%M:%S"))
+            
     if dayrange[0] <= now < dayrange[1]:
         print("Day")
         log.info("Autoset: Day")
