@@ -185,7 +185,8 @@ def autoset(autosetDuration=300000):
     if time.localtime().tm_wday in [5, 6]: #weekend
         print("weekend")
         dayrange[0] = "8:30:AM"
-        
+
+    #TODO Remember to make changes to raspberry pi too!
     duskrange=[dayrange[1],"7:45:PM"]
     nightrange=[duskrange[1],"8:30:PM"]
     sleeprange=[nightrange[1],"11:00:PM"]
