@@ -7,6 +7,7 @@ import datetime
 import SysTrayIcon as sysTray
 import logging
 import os
+import platform
 
 os.chdir('C:/Users/Richard/Documents/Coding Projects/YeeLight/')
 
@@ -17,9 +18,7 @@ logging.basicConfig(filename=os.getcwd()+'/log.log',
                     datefmt='%Y-%m-%d %I:%M:%S%p',
                     level=logging.INFO)
 
-stand = yeelight.Bulb("10.0.0.5")
-desk = yeelight.Bulb("10.0.0.10")
-b=[stand,desk]
+b=None
 commands=['dusk','day','night','sleep', 'off', 'on','toggle','sunrise','autoset','logon']
 allcommands=commands + ['bright','brightness','rgb']
 
@@ -77,7 +76,6 @@ def sunrise():
     for i in b:
         i.set_brightness(0)
         i.set_rgb(255, 0, 0)
-    print(desk.get_properties())
     time.sleep(1)
     
     transitions = [yeelight.HSVTransition(hue=39, saturation=100,
@@ -223,6 +221,14 @@ def autoset(autosetDuration=300000):
     return 0
 
 if __name__ == "__main__":
+    if platform.node()=='Richard-PC':
+        stand = yeelight.Bulb("10.0.0.5")
+        desk = yeelight.Bulb("10.0.0.10")
+        b = [stand, desk]
+    else:
+        #TODO vlad
+        pass
+    
     #Run the system tray app
     if len(sys.argv) > 1 and sys.argv[1].lower() == 'systray':
         import glob, itertools
@@ -251,6 +257,8 @@ if __name__ == "__main__":
             if datetime.time(22,30) <= now or now < datetime.time(1,0): #11:30, 1:00
                 with open(os.getcwd() + '/manualOverride.txt', 'w+') as f:
                     f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+        def test(SysTrayIcon):
+            pass
         #TODO brightness slider
         
         menu_options= (('Day', next(ico), systrayday),
