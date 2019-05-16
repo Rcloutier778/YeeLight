@@ -87,6 +87,8 @@ def sunrise():
         i.start_flow(yeelight.Flow(count=1,action=yeelight.Flow.actions.stay,transitions=transitions))
 
 def brightness(val):
+    #print("Brightness: ",val)
+    val=int(val)
     for i in b:
         i.set_brightness(val)
 
@@ -161,6 +163,19 @@ def logon():
     autoset(autosetDuration=3000)
     return
     
+    
+def rgbFlow(red=0,green=0,blue=0):
+    #print(b[0].get_properties())
+    bright=b[0].get_properties()['bright']
+    
+    for i in b:
+        i.start_flow(yeelight.Flow(count=1, action=yeelight.Flow.actions.stay,
+                                   transitions=[yeelight.RGBTransition(red,green,blue,brightness=int(bright))]))
+    
+    
+    
+    
+    
 def autoset(autosetDuration=300000):
     if all(x.get_properties()['power']=='off' for x in b):
         log.info('Power is off, cancelling autoset')
@@ -186,7 +201,7 @@ def autoset(autosetDuration=300000):
 
     #TODO Remember to make changes to raspberry pi too!
     duskrange=[dayrange[1],"7:45:PM"]
-    nightrange=[duskrange[1],"8:30:PM"]
+    nightrange=[duskrange[1],"9:30:PM"]
     sleeprange=[nightrange[1],"11:00:PM"]
     DNDrange=[sleeprange[1],dayrange[0]]
     
@@ -220,7 +235,16 @@ def autoset(autosetDuration=300000):
         off()
     return 0
 
+
+
+from tkinter import *
+from tkinter.colorchooser import *
+import sys
+
+
+
 if __name__ == "__main__":
+    
     if platform.node()=='Richard-PC':
         stand = yeelight.Bulb("10.0.0.5")
         desk = yeelight.Bulb("10.0.0.10")
@@ -229,42 +253,109 @@ if __name__ == "__main__":
         #TODO vlad
         pass
     
+    #If music mode is enabled (Enable it to disable rate limiting)
+    while (any(x.music_mode for x in b)):
+        for i in b:
+            try:
+                i.stop_music()
+            except Exception:
+                pass
+            
     #Run the system tray app
     if len(sys.argv) > 1 and sys.argv[1].lower() == 'systray':
-        import glob, itertools
+        import glob, itertools, platform, requests
         ico=itertools.cycle(glob.glob(os.getcwd()+'/icons/*.ico'))
-
+        
+        
+        
         def systrayday(SysTrayIcon):
             day()
-            with open(os.getcwd()+'/manualOverride.txt','w+') as f:
-                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+            systrayManualOverride()
         def systraydusk(SysTrayIcon):
             dusk()
-            with open(os.getcwd()+'/manualOverride.txt','w+') as f:
-                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+            systrayManualOverride()
         def systraynight(SysTrayIcon):
             night()
-            with open(os.getcwd()+'/manualOverride.txt','w+') as f:
-                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+            systrayManualOverride()
         def systraysleep(SysTrayIcon):
             sleep()
-            with open(os.getcwd()+'/manualOverride.txt','w+') as f:
-                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+            systrayManualOverride()
         def systraytoggle(SysTrayIcon):
             toggle()
             rn = datetime.datetime.now()
             now=datetime.time(rn.hour, rn.minute, 0)
+            systrayManualOverride()
             if datetime.time(22,30) <= now or now < datetime.time(1,0): #11:30, 1:00
-                with open(os.getcwd() + '/manualOverride.txt', 'w+') as f:
-                    f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
-        def test(SysTrayIcon):
-            pass
-        #TODO brightness slider
+                systrayManualOverride()
+
+        def systrayManualOverride():
+            with open(os.getcwd() + '/manualOverride.txt', 'w+') as f:
+                f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+            try:
+                if platform.node() =='Richard-PC':
+                    systrayUser='richard'
+                elif platform.node()=='Vlad':#TODO
+                    systrayUser='vlad'
+                print(systrayUser)
+                data = {"eventType": "manual", "user": systrayUser}
+                print('before post')
+                requests.post('http://10.0.0.17:9000', params={}, json=data)
+                print('after post')
+            except Exception:
+                print('failed')
+                pass
         
-        menu_options= (('Day', next(ico), systrayday),
+        def systrayColor(SysTrayIcon):
+            root=Tk()
+            root.geometry("0x0-300-300")
+            print(b[0].get_properties()['rgb'])
+            color=askcolor(parent=None)[0]
+            root.destroy()
+            if color==None: #Happens if Cancel is pressed
+                return
+            rgbFlow(int(color[0]),int(color[1]),int(color[2]))
+            systrayManualOverride()
+            
+        def systrayBrightness(SysTrayIcon):
+            if any(x.music_mode for x in b):
+                #print('already in music mode, stopping')
+                while(any(x.music_mode for x in b)):
+                    for i in b:
+                        try:
+                            i.stop_music()
+                        except Exception:
+                            pass
+                
+            for i in b:
+                i.start_music()
+                
+            root=Tk()
+            root.geometry("-200-30")
+            print(root.size())
+            from tkinter.commondialog import Scale
+            var=IntVar(value=b[0].get_properties()['bright'])
+            Scale(root,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)
+            root.mainloop()
+            
+            #This will throw errors, don't worry about them.
+            while (any(x.music_mode for x in b)):
+                for i in b:
+                    try:
+                        i.stop_music()
+                    except Exception:
+                        pass
+            systrayManualOverride()
+    
+        
+        menu_options= (
+                       ('Day', next(ico), systrayday),
                        ('Dusk', next(ico), systraydusk),
                        ('Night', next(ico), systraynight),
-                       ('Sleep', next(ico), systraysleep))
+                       ('Sleep', next(ico), systraysleep),
+                       ('...',next(ico),(
+                           ('Brightness',next(ico), systrayBrightness),
+                           ('Color', next(ico), systrayColor)))
+                       )
         
         sysTray.SysTrayIcon(next(ico),'Light controller',menu_options, icon_lclick=systraytoggle)
     else:
