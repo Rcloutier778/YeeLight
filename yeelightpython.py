@@ -306,14 +306,22 @@ if __name__ == "__main__":
                 pass
         
         def systrayColor(SysTrayIcon):
+            changeOccured=False
             root=Tk()
             root.geometry("0x0-300-300")
-            print(b[0].get_properties()['rgb'])
-            color=askcolor(parent=None)[0]
-            root.destroy()
-            if color==None: #Happens if Cancel is pressed
-                return
-            rgbFlow(int(color[0]),int(color[1]),int(color[2]))
+            try:
+                while True:
+                    color=askcolor(parent=None)[0]
+                    
+                    if color==None: #Happens if Cancel is pressed
+                        root.destroy()
+                        if changeOccured:
+                            systrayManualOverride()
+                        return
+                    rgbFlow(int(color[0]),int(color[1]),int(color[2]))
+                    changeOccured=True
+            except Exception:
+                root.destroy()
             systrayManualOverride()
             
         def systrayBrightness(SysTrayIcon):
