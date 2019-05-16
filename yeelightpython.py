@@ -174,11 +174,19 @@ def rgbFlow(red=0,green=0,blue=0):
     for i in b:
         i.start_flow(yeelight.Flow(count=1, action=yeelight.Flow.actions.stay,
                                    transitions=[yeelight.RGBTransition(red,green,blue,brightness=int(bright))]))
+
+
+def rgbSet(red=0, green=0, blue=0):
+    red = int(red)
+    green = int(green)
+    blue = int(blue)
+    # print(b[0].get_properties())
+    bright = b[0].get_properties()['bright']
     
-    
-    
-    
-    
+    for i in b:
+        i.set_rgb(red,green,blue)
+
+
 def autoset(autosetDuration=300000):
     if all(x.get_properties()['power']=='off' for x in b):
         log.info('Power is off, cancelling autoset')
@@ -244,7 +252,13 @@ from tkinter import *
 from tkinter.colorchooser import *
 import sys
 
-
+def stopMusic():
+    while (any(x.music_mode for x in b)):
+        for i in b:
+            try:
+                i.stop_music()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     if platform.node()=='Richard-PC':
@@ -312,48 +326,29 @@ if __name__ == "__main__":
         from tkcolorpicker_custom import colorpicker
         
         def systrayColor(SysTrayIcon):
-            if any(x.music_mode for x in b):
-                # print('already in music mode, stopping')
-                while (any(x.music_mode for x in b)):
-                    for i in b:
-                        try:
-                            i.stop_music()
-                        except Exception:
-                            pass
-    
+            stopMusic()
+            
             for i in b:
                 i.start_music()
             import ast
             def rgbChanged(*args):
                 #print(__updater.get())
-                rgbFlow(*ast.literal_eval(__updater.get()))
+                rgbSet(*ast.literal_eval(__updater.get()))
             root=Tk()
             root.geometry("0x0-0-0")
             __updater=StringVar()
             __updater.trace_variable("w",rgbChanged)
             colorpicker.askcolor(parent=root, yeelight_updater=__updater)
             root.destroy()
-            # This will throw errors, don't worry about them.
-            while (any(x.music_mode for x in b)):
-                for i in b:
-                    try:
-                        i.stop_music()
-                    except Exception:
-                        pass
+            
+            stopMusic()
+            
             systrayManualOverride()
             
             return
             
         def systrayBrightness(SysTrayIcon):
-            if any(x.music_mode for x in b):
-                #print('already in music mode, stopping')
-                while(any(x.music_mode for x in b)):
-                    for i in b:
-                        try:
-                            i.stop_music()
-                        except Exception:
-                            pass
-                
+            stopMusic()
             for i in b:
                 i.start_music()
                 
@@ -364,15 +359,28 @@ if __name__ == "__main__":
             Scale(root,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)
             root.mainloop()
             
-            #This will throw errors, don't worry about them.
-            while (any(x.music_mode for x in b)):
-                for i in b:
-                    try:
-                        i.stop_music()
-                    except Exception:
-                        pass
+            stopMusic()
+            
             systrayManualOverride()
     
+        def systrayTemperature(SysTrayIcon):
+            stopMusic()
+            for i in b:
+                i.start_music()
+            root = Tk()
+            root.geometry("-200-30")
+            from tkinter.commondialog import Scale
+            var = IntVar(value=b[0].get_properties()['ct'])
+            def temperatureScale(temp):
+                for i in b:
+                    i.set_color_temp(int(temp))
+                #colorTempFlow(int(temp),300,int(b[0].get_properties()['bright']))
+            Scale(root, variable=var, command=temperatureScale,  from_=1500, to_=6700, length=200, tickinterval=500).pack(anchor=CENTER)
+            root.mainloop()
+
+            stopMusic()
+
+            systrayManualOverride()
         
         menu_options= (
                        ('Day', next(ico), systrayday),
@@ -381,7 +389,8 @@ if __name__ == "__main__":
                        ('Sleep', next(ico), systraysleep),
                        ('...',next(ico),(
                            ('Brightness',next(ico), systrayBrightness),
-                           ('Color', next(ico), systrayColor)))
+                           ('Color', next(ico), systrayColor),
+                           ('Temperature',next(ico), systrayTemperature)))
                        )
         
         sysTray.SysTrayIcon(next(ico),'Light controller',menu_options, icon_lclick=systraytoggle)
