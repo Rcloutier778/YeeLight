@@ -1,2 +1,2 @@
 @echo off
-pythonw "C:\Users\Richard\Documents\Coding Projects\YeeLight\yeelightpython.py" systray
+py -3.7 "C:\Users\Richard\Documents\Coding Projects\YeeLight\yeelightpython.py" systray

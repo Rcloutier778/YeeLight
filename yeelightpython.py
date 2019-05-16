@@ -8,6 +8,9 @@ import SysTrayIcon as sysTray
 import logging
 import os
 import platform
+from tkcolorpicker_custom import colorpicker
+
+from tkinter import *
 
 os.chdir('C:/Users/Richard/Documents/Coding Projects/YeeLight/')
 
@@ -248,11 +251,9 @@ def autoset(autosetDuration=300000):
 
 
 
-from tkinter import *
-from tkinter.colorchooser import *
-import sys
 
 def stopMusic():
+    
     while (any(x.music_mode for x in b)):
         for i in b:
             try:
@@ -270,12 +271,7 @@ if __name__ == "__main__":
         pass
     
     #If music mode is enabled (Enable it to disable rate limiting)
-    while (any(x.music_mode for x in b)):
-        for i in b:
-            try:
-                i.stop_music()
-            except Exception:
-                pass
+    stopMusic()
             
     #Run the system tray app
     if len(sys.argv) > 1 and sys.argv[1].lower() == 'systray':
@@ -323,7 +319,7 @@ if __name__ == "__main__":
         
         
         
-        from tkcolorpicker_custom import colorpicker
+        
         
         def systrayColor(SysTrayIcon):
             stopMusic()
@@ -351,18 +347,20 @@ if __name__ == "__main__":
             stopMusic()
             for i in b:
                 i.start_music()
-                
+
             root=Tk()
             root.geometry("-200-30")
             from tkinter.commondialog import Scale
             var=IntVar(value=b[0].get_properties()['bright'])
             Scale(root,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)
             root.mainloop()
-            
             stopMusic()
             
+            
             systrayManualOverride()
+            
     
+                
         def systrayTemperature(SysTrayIcon):
             stopMusic()
             for i in b:
