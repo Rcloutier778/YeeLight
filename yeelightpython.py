@@ -165,6 +165,9 @@ def logon():
     
     
 def rgbFlow(red=0,green=0,blue=0):
+    red=int(red)
+    green=int(green)
+    blue=int(blue)
     #print(b[0].get_properties())
     bright=b[0].get_properties()['bright']
     
@@ -244,7 +247,6 @@ import sys
 
 
 if __name__ == "__main__":
-    
     if platform.node()=='Richard-PC':
         stand = yeelight.Bulb("10.0.0.5")
         desk = yeelight.Bulb("10.0.0.10")
@@ -305,24 +307,42 @@ if __name__ == "__main__":
                 print('failed')
                 pass
         
+        
+        
+        from tkcolorpicker_custom import colorpicker
+        
         def systrayColor(SysTrayIcon):
-            changeOccured=False
+            if any(x.music_mode for x in b):
+                # print('already in music mode, stopping')
+                while (any(x.music_mode for x in b)):
+                    for i in b:
+                        try:
+                            i.stop_music()
+                        except Exception:
+                            pass
+    
+            for i in b:
+                i.start_music()
+            import ast
+            def rgbChanged(*args):
+                #print(__updater.get())
+                rgbFlow(*ast.literal_eval(__updater.get()))
             root=Tk()
-            root.geometry("0x0-300-300")
-            try:
-                while True:
-                    color=askcolor(parent=None)[0]
-                    
-                    if color==None: #Happens if Cancel is pressed
-                        root.destroy()
-                        if changeOccured:
-                            systrayManualOverride()
-                        return
-                    rgbFlow(int(color[0]),int(color[1]),int(color[2]))
-                    changeOccured=True
-            except Exception:
-                root.destroy()
+            root.geometry("0x0-0-0")
+            __updater=StringVar()
+            __updater.trace_variable("w",rgbChanged)
+            colorpicker.askcolor(parent=root, yeelight_updater=__updater)
+            root.destroy()
+            # This will throw errors, don't worry about them.
+            while (any(x.music_mode for x in b)):
+                for i in b:
+                    try:
+                        i.stop_music()
+                    except Exception:
+                        pass
             systrayManualOverride()
+            
+            return
             
         def systrayBrightness(SysTrayIcon):
             if any(x.music_mode for x in b):
@@ -339,7 +359,6 @@ if __name__ == "__main__":
                 
             root=Tk()
             root.geometry("-200-30")
-            print(root.size())
             from tkinter.commondialog import Scale
             var=IntVar(value=b[0].get_properties()['bright'])
             Scale(root,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)
