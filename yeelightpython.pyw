@@ -350,6 +350,7 @@ if __name__ == "__main__":
 
             root=Tk()
             root.geometry("-200-30")
+            root.Toplevel.bind("<FocusOut>", root.quit)
             from tkinter.commondialog import Scale
             var=IntVar(value=b[0].get_properties()['bright'])
             Scale(root,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)

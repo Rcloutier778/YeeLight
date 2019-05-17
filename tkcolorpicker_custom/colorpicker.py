@@ -66,6 +66,11 @@ class ColorPicker(tk.Toplevel):
         """
         #parent.geometry("0x0-300-300")
         tk.Toplevel.__init__(self, parent)
+        def destroyOnFocusLoss(*args):
+            self.destroy()
+            return
+        self.focus_force()
+        self.bind("<FocusOut>", destroyOnFocusLoss)
 
         self.geometry("-0-50")
 
