@@ -317,10 +317,7 @@ if __name__ == "__main__":
                 print('failed')
                 pass
         
-        
-        
-        
-        
+
         def systrayColor(SysTrayIcon):
             stopMusic()
             
@@ -332,6 +329,7 @@ if __name__ == "__main__":
                 rgbSet(*ast.literal_eval(__updater.get()))
             root=Tk()
             root.geometry("0x0-0-0")
+            
             __updater=StringVar()
             __updater.trace_variable("w",rgbChanged)
             colorpicker.askcolor(parent=root, yeelight_updater=__updater)
@@ -347,16 +345,27 @@ if __name__ == "__main__":
             stopMusic()
             for i in b:
                 i.start_music()
-
+            
             root=Tk()
-            root.geometry("-200-30")
-            root.Toplevel.bind("<FocusOut>", root.quit)
+            root.withdraw()
+            topLevel = Toplevel(root)
+            topLevel.geometry("-200-30")
+            topLevel.focus_force()
+            def destroyOnFocusLoss(*args):
+                topLevel.quit()
+                root.quit()
+            topLevel.bind("<FocusOut>",destroyOnFocusLoss)
+            
             from tkinter.commondialog import Scale
             var=IntVar(value=b[0].get_properties()['bright'])
-            Scale(root,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)
+            Scale(master=topLevel,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)
             root.mainloop()
             stopMusic()
-            
+            try:
+                topLevel.destroy()
+                root.destroy()
+            except Exception:
+                pass
             
             systrayManualOverride()
             
@@ -366,17 +375,34 @@ if __name__ == "__main__":
             stopMusic()
             for i in b:
                 i.start_music()
+
             root = Tk()
-            root.geometry("-200-30")
+            root.withdraw()
+            topLevel = Toplevel(root)
+            topLevel.geometry("-200-30")
+            topLevel.focus_force()
+
+            def destroyOnFocusLoss(*args):
+                topLevel.quit()
+                root.quit()
+
+            topLevel.bind("<FocusOut>", destroyOnFocusLoss)
+            
+            
             from tkinter.commondialog import Scale
             var = IntVar(value=b[0].get_properties()['ct'])
             def temperatureScale(temp):
                 for i in b:
                     i.set_color_temp(int(temp))
                 #colorTempFlow(int(temp),300,int(b[0].get_properties()['bright']))
-            Scale(root, variable=var, command=temperatureScale,  from_=1500, to_=6700, length=200, tickinterval=500).pack(anchor=CENTER)
+            Scale(topLevel, variable=var, command=temperatureScale,  from_=1500, to_=6700, length=200, tickinterval=500).pack(anchor=CENTER)
             root.mainloop()
-
+            try:
+                topLevel.destroy()
+                root.destroy()
+            except Exception:
+                pass
+            
             stopMusic()
 
             systrayManualOverride()

@@ -67,7 +67,9 @@ class ColorPicker(tk.Toplevel):
         #parent.geometry("0x0-300-300")
         tk.Toplevel.__init__(self, parent)
         def destroyOnFocusLoss(*args):
-            self.destroy()
+            parent.destroy()
+            global _pulse
+            _pulse=1
             return
         self.focus_force()
         self.bind("<FocusOut>", destroyOnFocusLoss)
@@ -538,8 +540,9 @@ class ColorPicker(tk.Toplevel):
         self.destroy()
 
 _yeelight_updater=None
+_pulse=None
 
-def askcolor(color="red", parent=None, title=_("Color Chooser"), alpha=False, yeelight_updater=None):
+def askcolor(color="red", parent=None, title=_("Color Chooser"), alpha=False, yeelight_updater=None, pulse=None):
     """
     Open a ColorPicker dialog and return the chosen color.
 
@@ -553,8 +556,10 @@ def askcolor(color="red", parent=None, title=_("Color Chooser"), alpha=False, ye
         * alpha: alpha channel suppport
     """
     global _yeelight_updater
+    global _pulse
+    _pulse = pulse
     _yeelight_updater=yeelight_updater
-    col = ColorPicker(parent, color, alpha, title, yeelight_updater)
+    col = ColorPicker(parent, color, alpha, title)
     col.wait_window(col)
     res = col.get_color()
     if res:
