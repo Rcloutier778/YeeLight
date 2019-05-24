@@ -253,7 +253,6 @@ def autoset(autosetDuration=300000):
 
 
 def stopMusic():
-    
     while (any(x.music_mode for x in b)):
         for i in b:
             try:
@@ -326,6 +325,10 @@ if __name__ == "__main__":
         def systrayColor(SysTrayIcon):
             log.info('Colors')
             stopMusic()
+            
+            #from tkinter.colorchooser import askcolor
+            #askcolor()
+            
             
             for i in b:
                 i.start_music()

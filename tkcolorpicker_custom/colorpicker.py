@@ -28,6 +28,7 @@ from tkcolorpicker_custom.gradientbar import GradientBar
 from tkcolorpicker_custom.colorsquare import ColorSquare
 from tkcolorpicker_custom.spinbox import Spinbox
 from tkcolorpicker_custom.limitvar import LimitVar
+from tkcolorpicker_custom.temperatureGradient import TemperatureGradBar
 from locale import getdefaultlocale
 import re
 
@@ -43,7 +44,10 @@ if getdefaultlocale()[0][:2] == 'fr':
     TR = FR
 else:
     TR = EN
-
+_yeelight_updater=None
+_bright_updater=None
+_temp_updater=None
+_pulse=None
 
 def _(text):
     """Translate text."""
@@ -127,6 +131,17 @@ class ColorPicker(tk.Toplevel):
         bar = ttk.Frame(self, borderwidth=2, relief='groove')
         self.bar = GradientBar(bar, hue=hue, width=200, highlightthickness=0)
         self.bar.pack()
+
+        from tkinter import Scale, HORIZONTAL,CENTER, VERTICAL
+        
+        # --- Brightness
+        brightnessBar=ttk.Frame(self, borderwidth=2, relief='groove')
+        self.brightnessBar=Scale(master=brightnessBar,variable=_bright_updater, length=300, from_=0, to_=100, tickinterval=10, orient=VERTICAL).pack(anchor=CENTER)
+
+        # --- Temperature
+        temperatureBar=ttk.Frame(self,borderwidth=2,relief='groove')
+        self.temperatureBar = TemperatureGradBar(temperatureBar, tempColor=_temp_updater.get(), highlightthickness=0, variable=_temp_updater)
+        self.temperatureBar.pack()
 
         # --- ColorSquare
         square = ttk.Frame(self, borderwidth=2, relief='groove')
@@ -283,14 +298,17 @@ class ColorPicker(tk.Toplevel):
                    command=self.destroy).pack(side="right", padx=10)
 
         # --- placement
-        bar.grid(row=0, column=0, padx=10, pady=(10, 4), sticky='n')
-        square.grid(row=1, column=0, padx=10, pady=(9, 0), sticky='n')
+        bar.grid(row=1, column=1, padx=10, pady=(10, 4), sticky='n')
+        temperatureBar.grid(row=0, column=0,columnspan=3, padx=10, pady=(10, 4), sticky='n')
+        brightnessBar.grid(row=1, column=0, rowspan=4, padx=10, pady=(10, 4), sticky='n')
+        square.grid(row=2, column=1, padx=10, pady=(9, 0), sticky='n')
+
         if alpha:
-            alpha_frame.grid(row=2, column=0, columnspan=2, padx=10,
+            alpha_frame.grid(row=3, column=1, columnspan=2, padx=10,
                              pady=(1, 4), sticky='ewn')
-        col_frame.grid(row=0, rowspan=2, column=1, padx=(4, 10), pady=(10, 4))
-        frame.grid(row=3, column=0, columnspan=2, pady=(4, 10), padx=10, sticky="new")
-        button_frame.grid(row=4, columnspan=2, pady=(0, 10), padx=10)
+        col_frame.grid(row=1, rowspan=2, column=2, padx=(4, 10), pady=(10, 4))
+        frame.grid(row=4, column=1, columnspan=2, pady=(4, 10), padx=10, sticky="new")
+        button_frame.grid(row=5, columnspan=2, pady=(0, 10), padx=10)
 
         # --- bindings
         self.bar.bind("<ButtonRelease-1>", self._change_color, True)
@@ -541,10 +559,10 @@ class ColorPicker(tk.Toplevel):
         self.color = rgb, hsv, hexa
         self.destroy()
 
-_yeelight_updater=None
-_pulse=None
 
-def askcolor(color="red", parent=None, title=_("Color Chooser"), alpha=False, yeelight_updater=None, pulse=None):
+
+def askcolor(color="red", parent=None, title=_("Color Chooser"), alpha=False, yeelight_updater=None, pulse=None,
+             bright_updater=None, temp_updater=None):
     """
     Open a ColorPicker dialog and return the chosen color.
 
@@ -558,9 +576,13 @@ def askcolor(color="red", parent=None, title=_("Color Chooser"), alpha=False, ye
         * alpha: alpha channel suppport
     """
     global _yeelight_updater
+    global _bright_updater
+    global _temp_updater
     global _pulse
     _pulse = pulse
     _yeelight_updater=yeelight_updater
+    _bright_updater = bright_updater
+    _temp_updater = temp_updater
     col = ColorPicker(parent, color, alpha, title)
     col.wait_window(col)
     res = col.get_color()

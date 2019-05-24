@@ -325,22 +325,25 @@ if __name__ == "__main__":
         def systrayColor(SysTrayIcon):
             log.info('Colors')
             stopMusic()
-            
-            #from tkinter.colorchooser import askcolor
-            #askcolor()
-            
+            initVal = b[0].get_properties()['bright']
+            initTemp = b[0].get_properties()['ct']
             
             for i in b:
                 i.start_music()
             import ast
             def rgbChanged(*args):
-                #print(__updater.get())
                 rgbSet(*ast.literal_eval(__updater.get()))
+            def brightnessChanged(*args):
+                brightness(__brightness.get())
+            def temperatureChanged(*args):
+                print("Temp changed ",__temperature.get())
+                for i in b:
+                    i.set_color_temp(int(__temperature.get()))
             def pulseChanged(*args):
                 for child in root.winfo_children():
                     child.quit()
                 root.quit()
-                
+
             root=Tk()
             root.title('rot')
             root.geometry("0x0-0-0")
@@ -351,7 +354,14 @@ if __name__ == "__main__":
             __updater=StringVar()
             __updater.trace_variable("w",rgbChanged)
             
-            clp.askcolor(parent=root, yeelight_updater=__updater, pulse=__pulse)
+            __brightness=IntVar(value=initVal)
+            __brightness.trace_variable('w',brightnessChanged)
+            
+            __temperature=IntVar(value=initTemp)
+            __temperature.trace_variable('w',temperatureChanged)
+            
+            
+            clp.askcolor(parent=root, yeelight_updater=__updater, pulse=__pulse, bright_updater=__brightness, temp_updater=__temperature)
             try:
                 root.destroy()
             except Exception:
@@ -363,97 +373,14 @@ if __name__ == "__main__":
             
             return
             
-        def systrayBrightness(SysTrayIcon):
-            log.info('Brightness')
-            stopMusic()
-            initVal=b[0].get_properties()['bright']
-            for i in b:
-                i.start_music()
-            
-            root=Tk()
-            root.withdraw()
-            
-            topLevel = Toplevel(root)
-            topLevel.geometry("-200-50")
-            topLevel.overrideredirect(True)
-            topLevel.focus_force()
-            def destroyOnFocusLoss(*args):
-                topLevel.quit()
-                root.quit()
-            topLevel.bind("<FocusOut>",destroyOnFocusLoss)
-            
-            from tkinter.commondialog import Scale
-            var=IntVar(value=initVal)
-            Scale(master=topLevel,variable=var, command=brightness, length=150, orient=HORIZONTAL).pack(anchor=CENTER)
-            root.mainloop()
-            stopMusic()
-            try:
-                topLevel.destroy()
-            except Exception:
-                pass
-            try:
-                root.destroy()
-            except Exception:
-                pass
-            
-            systrayManualOverride()
-            
-    
-                
-        def systrayTemperature(SysTrayIcon):
-            log.info('Temperature')
-            stopMusic()
-            initVal=b[0].get_properties()['ct']
-            
-            for i in b:
-                i.start_music()
-
-            root = Tk()
-            root.withdraw()
-            topLevel = Toplevel(root)
-            topLevel.geometry("-200-30")
-            topLevel.overrideredirect(True)
-            topLevel.focus_force()
-
-            def destroyOnFocusLoss(*args):
-                topLevel.quit()
-                root.quit()
-
-            topLevel.bind("<FocusOut>", destroyOnFocusLoss)
-            
-            
-            from tkinter.commondialog import Scale
-            for i in b:
-                print(i.get_properties())
-            var = IntVar(value=initVal)
-            def temperatureScale(temp):
-                for i in b:
-                    i.set_color_temp(int(temp))
-                #colorTempFlow(int(temp),300,int(b[0].get_properties()['bright']))
-            Scale(topLevel, variable=var, command=temperatureScale,  from_=1500, to_=6700, length=200, tickinterval=500).pack(anchor=CENTER)
-            root.mainloop()
-            try:
-                topLevel.destroy()
-            except Exception:
-                pass
-            try:
-                root.destroy()
-            except Exception:
-                pass
-            
-            stopMusic()
-
-            systrayManualOverride()
+        
         
         menu_options= (
                        ('Day', next(ico), systrayday),
                        ('Dusk', next(ico), systraydusk),
                        ('Night', next(ico), systraynight),
                        ('Sleep', next(ico), systraysleep),
-                       ('...',next(ico),(
-                           ('Brightness',next(ico), systrayBrightness),
-                           ('Color', next(ico), systrayColor),
-                           ('Temperature',next(ico), systrayTemperature)))
+                       ('Custom', next(ico), systrayColor)
                        )
         
         sysTray.SysTrayIcon(next(ico),'Light controller',menu_options, icon_lclick=systraytoggle)
