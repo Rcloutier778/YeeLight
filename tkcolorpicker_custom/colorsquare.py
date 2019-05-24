@@ -20,13 +20,13 @@ Color square gradient with selection cross
 """
 
 
-from tkcolorpicker.functions import tk, round2, rgb_to_hexa, hue2col, rgb_to_hsv
+from tkcolorpicker_custom.functions import tk, round2, rgb_to_hexa, hue2col, rgb_to_hsv, hsv_to_rgb
 
 
 class ColorSquare(tk.Canvas):
     """Square color gradient with selection cross."""
 
-    def __init__(self, parent, hue, color=None, height=256, width=256, **kwargs):
+    def __init__(self, parent, hue, color=None, height=256, width=256,lum=80, **kwargs):
         """
         Create a ColorSquare.
 
@@ -40,6 +40,7 @@ class ColorSquare(tk.Canvas):
         tk.Canvas.__init__(self, parent, height=height, width=width, **kwargs)
         self.bg = tk.PhotoImage(width=width, height=height, master=self)
         self._hue = hue
+        self._lum = lum
         if not color:
             color = hue2col(self._hue)
         self.bind('<Configure>', lambda e: self._draw(color))
@@ -53,16 +54,26 @@ class ColorSquare(tk.Canvas):
         height = self.winfo_height()
         h = float(height - 1)
         w = float(width - 1)
+        lum=self.get_lum()
         if height:
-            c = [(r + i / h * (255 - r), g + i / h * (255 - g), b + i / h * (255 - b)) for i in range(height)]
+            #c = [(r + (i / h) * (255 - r), g + (i / h) * (255 - g), b + (i / h) * (255 - b)) for i in range(height)]
+
+            #Make square based off of hue,sat coords for x,y
+            c = [((i / h) * 360, ((height-1-i) / h) * 100) for i in range(height)]
             data = []
             for i in range(height):
                 line = []
                 for j in range(width):
-                    rij = round2(j / w * c[i][0])
-                    gij = round2(j / w * c[i][1])
-                    bij = round2(j / w * c[i][2])
-                    color = rgb_to_hexa(rij, gij, bij)
+                    #rij = round2(j / w * c[i][0])
+                    #gij = round2(j / w * c[i][1])
+                    #bij = round2(j / w * c[i][2])
+                    #color = rgb_to_hexa(rij, gij, bij)
+                    
+                    hij=round2(c[j][0])
+                    sij=round2(c[i][1])
+                    vij = round2(lum)
+                    color = rgb_to_hexa(*hsv_to_rgb(hij,sij,vij))
+
                     line.append(color)
                 data.append("{" + " ".join(line) + "}")
             self.bg.put(" ".join(data))
@@ -91,10 +102,21 @@ class ColorSquare(tk.Canvas):
         """Return hue."""
         return self._hue
 
+    def get_lum(self):
+        return self._lum
+
     def set_hue(self, value):
         """Set hue."""
         old = self._hue
         self._hue = value
+        if value != old:
+            self._fill()
+            self.event_generate("<<ColorChanged>>")
+
+    def set_lum(self, value):
+        """Set hue."""
+        old = self._lum
+        self._lum = value
         if value != old:
             self._fill()
             self.event_generate("<<ColorChanged>>")
@@ -129,9 +151,16 @@ class ColorSquare(tk.Canvas):
             r, g, b = self.bg.get(round2(xp), round2(yp)).split()
             r, g, b = int(r), int(g), int(b)
         hexa = rgb_to_hexa(r, g, b)
-        h = self.get_hue()
+        #h = self.get_hue()
+        #s = round2((1 - float(y) / self.winfo_height()) * 100)
+        #v = round2(100 * float(x) / self.winfo_width())
+
+        
+        h = round2(360 * float(x) / self.winfo_width())
         s = round2((1 - float(y) / self.winfo_height()) * 100)
-        v = round2(100 * float(x) / self.winfo_width())
+        v = self.get_lum()
+        print(h,s,v)
+        
         return (r, g, b), (h, s, v), hexa
 
     def set_rgb(self, sel_color):
@@ -139,7 +168,8 @@ class ColorSquare(tk.Canvas):
         width = self.winfo_width()
         height = self.winfo_height()
         h, s, v = rgb_to_hsv(*sel_color)
-        self.set_hue(h)
+        #self.set_hue(h)
+        self.set_lum(v)
         x = v / 100.
         y = (1 - s / 100.)
         self.coords('cross_h', 0, y * height, width, y * height)
@@ -150,7 +180,8 @@ class ColorSquare(tk.Canvas):
         width = self.winfo_width()
         height = self.winfo_height()
         h, s, v = sel_color
-        self.set_hue(h)
+        #self.set_hue(h)
+        self.set_lum(v)
         x = v / 100.
         y = (1 - s / 100.)
         self.coords('cross_h', 0, y * height, width, y * height)

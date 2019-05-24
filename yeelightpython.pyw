@@ -8,7 +8,7 @@ import SysTrayIcon as sysTray
 import logging
 import os
 import platform
-from tkcolorpicker_custom import colorpicker
+from tkcolorpicker_custom import colorpicker as clp
 
 from tkinter import *
 
@@ -281,18 +281,23 @@ if __name__ == "__main__":
         
         
         def systrayday(SysTrayIcon):
+            log.info('day')
             day()
             systrayManualOverride()
         def systraydusk(SysTrayIcon):
+            log.info('dusk')
             dusk()
             systrayManualOverride()
         def systraynight(SysTrayIcon):
+            log.info('night')
             night()
             systrayManualOverride()
         def systraysleep(SysTrayIcon):
+            log.info('sleep')
             sleep()
             systrayManualOverride()
         def systraytoggle(SysTrayIcon):
+            log.info('Toggle')
             toggle()
             rn = datetime.datetime.now()
             now=datetime.time(rn.hour, rn.minute, 0)
@@ -319,6 +324,7 @@ if __name__ == "__main__":
         
 
         def systrayColor(SysTrayIcon):
+            log.info('Colors')
             stopMusic()
             
             for i in b:
@@ -327,13 +333,26 @@ if __name__ == "__main__":
             def rgbChanged(*args):
                 #print(__updater.get())
                 rgbSet(*ast.literal_eval(__updater.get()))
+            def pulseChanged(*args):
+                for child in root.winfo_children():
+                    child.quit()
+                root.quit()
+                
             root=Tk()
+            root.title('rot')
             root.geometry("0x0-0-0")
+            
+            __pulse = IntVar(value=0)
+            __pulse.trace_variable("w",pulseChanged)
             
             __updater=StringVar()
             __updater.trace_variable("w",rgbChanged)
-            colorpicker.askcolor(parent=root, yeelight_updater=__updater)
-            root.destroy()
+            
+            clp.askcolor(parent=root, yeelight_updater=__updater, pulse=__pulse)
+            try:
+                root.destroy()
+            except Exception:
+                pass
             
             stopMusic()
             
@@ -342,14 +361,18 @@ if __name__ == "__main__":
             return
             
         def systrayBrightness(SysTrayIcon):
+            log.info('Brightness')
             stopMusic()
+            initVal=b[0].get_properties()['bright']
             for i in b:
                 i.start_music()
             
             root=Tk()
             root.withdraw()
+            
             topLevel = Toplevel(root)
-            topLevel.geometry("-200-30")
+            topLevel.geometry("-200-50")
+            topLevel.overrideredirect(True)
             topLevel.focus_force()
             def destroyOnFocusLoss(*args):
                 topLevel.quit()
@@ -357,12 +380,15 @@ if __name__ == "__main__":
             topLevel.bind("<FocusOut>",destroyOnFocusLoss)
             
             from tkinter.commondialog import Scale
-            var=IntVar(value=b[0].get_properties()['bright'])
-            Scale(master=topLevel,variable=var, command=brightness, orient=HORIZONTAL).pack(anchor=CENTER)
+            var=IntVar(value=initVal)
+            Scale(master=topLevel,variable=var, command=brightness, length=150, orient=HORIZONTAL).pack(anchor=CENTER)
             root.mainloop()
             stopMusic()
             try:
                 topLevel.destroy()
+            except Exception:
+                pass
+            try:
                 root.destroy()
             except Exception:
                 pass
@@ -372,7 +398,10 @@ if __name__ == "__main__":
     
                 
         def systrayTemperature(SysTrayIcon):
+            log.info('Temperature')
             stopMusic()
+            initVal=b[0].get_properties()['ct']
+            
             for i in b:
                 i.start_music()
 
@@ -380,6 +409,7 @@ if __name__ == "__main__":
             root.withdraw()
             topLevel = Toplevel(root)
             topLevel.geometry("-200-30")
+            topLevel.overrideredirect(True)
             topLevel.focus_force()
 
             def destroyOnFocusLoss(*args):
@@ -390,7 +420,9 @@ if __name__ == "__main__":
             
             
             from tkinter.commondialog import Scale
-            var = IntVar(value=b[0].get_properties()['ct'])
+            for i in b:
+                print(i.get_properties())
+            var = IntVar(value=initVal)
             def temperatureScale(temp):
                 for i in b:
                     i.set_color_temp(int(temp))
@@ -399,6 +431,9 @@ if __name__ == "__main__":
             root.mainloop()
             try:
                 topLevel.destroy()
+            except Exception:
+                pass
+            try:
                 root.destroy()
             except Exception:
                 pass

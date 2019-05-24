@@ -47,8 +47,8 @@ class GradientBar(tk.Canvas):
                 pass
         else:
             self._variable = tk.IntVar(self)
-        if hue > 360:
-            hue = 360
+        if hue > 100:
+            hue = 100
         elif hue < 0:
             hue = 0
         self._variable.set(hue)
@@ -75,33 +75,35 @@ class GradientBar(tk.Canvas):
 
         line = []
         for i in range(width):
-            line.append(rgb_to_hexa(*hue2col(float(i) / width * 360)))
+            #line.append(rgb_to_hexa(*hue2col(float(i) / width * 360)))
+            gradval=round2(float(i)/width * 255)
+            line.append(rgb_to_hexa(gradval,gradval,gradval))
         line = "{" + " ".join(line) + "}"
         self.gradient.put(" ".join([line for j in range(height)]))
         self.create_image(0, 0, anchor="nw", tags="gardient",
                           image=self.gradient)
         self.lower("gradient")
 
-        x = hue / 360. * width
+        x = hue / 100. * width
         self.create_line(x, 0, x, height, width=2, tags='cursor')
 
     def _on_click(self, event):
         """Move selection cursor on click."""
         x = event.x
         self.coords('cursor', x, 0, x, self.winfo_height())
-        self._variable.set(round2((360. * x) / self.winfo_width()))
+        self._variable.set(round2((100. * x) / self.winfo_width()))
 
     def _on_move(self, event):
         """Make selection cursor follow the cursor."""
         w = self.winfo_width()
         x = min(max(event.x, 0), w)
         self.coords('cursor', x, 0, x, self.winfo_height())
-        self._variable.set(round2((360. * x) / w))
+        self._variable.set(round2((100. * x) / w))
 
     def _update_hue(self, *args):
         hue = int(self._variable.get())
-        if hue > 360:
-            hue = 360
+        if hue > 100:
+            hue = 100
         elif hue < 0:
             hue = 0
         self.set(hue)
@@ -110,10 +112,10 @@ class GradientBar(tk.Canvas):
     def get(self):
         """Return hue of color under cursor."""
         coords = self.coords('cursor')
-        return round2(360 * coords[0] / self.winfo_width())
+        return round2(100 * coords[0] / self.winfo_width())
 
     def set(self, hue):
         """Set cursor position on the color corresponding to the hue value."""
-        x = hue / 360. * self.winfo_width()
+        x = hue / 100. * self.winfo_width()
         self.coords('cursor', x, 0, x, self.winfo_height())
         self._variable.set(hue)

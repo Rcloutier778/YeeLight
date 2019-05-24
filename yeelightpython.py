@@ -253,7 +253,6 @@ def autoset(autosetDuration=300000):
 
 
 def stopMusic():
-    
     while (any(x.music_mode for x in b)):
         for i in b:
             try:
@@ -281,18 +280,23 @@ if __name__ == "__main__":
         
         
         def systrayday(SysTrayIcon):
+            log.info('day')
             day()
             systrayManualOverride()
         def systraydusk(SysTrayIcon):
+            log.info('dusk')
             dusk()
             systrayManualOverride()
         def systraynight(SysTrayIcon):
+            log.info('night')
             night()
             systrayManualOverride()
         def systraysleep(SysTrayIcon):
+            log.info('sleep')
             sleep()
             systrayManualOverride()
         def systraytoggle(SysTrayIcon):
+            log.info('Toggle')
             toggle()
             rn = datetime.datetime.now()
             now=datetime.time(rn.hour, rn.minute, 0)
@@ -319,7 +323,12 @@ if __name__ == "__main__":
         
 
         def systrayColor(SysTrayIcon):
+            log.info('Colors')
             stopMusic()
+            
+            #from tkinter.colorchooser import askcolor
+            #askcolor()
+            
             
             for i in b:
                 i.start_music()
@@ -329,8 +338,8 @@ if __name__ == "__main__":
                 rgbSet(*ast.literal_eval(__updater.get()))
             def pulseChanged(*args):
                 for child in root.winfo_children():
-                    child.destroy()
-                root.destroy()
+                    child.quit()
+                root.quit()
                 
             root=Tk()
             root.title('rot')
@@ -355,6 +364,7 @@ if __name__ == "__main__":
             return
             
         def systrayBrightness(SysTrayIcon):
+            log.info('Brightness')
             stopMusic()
             initVal=b[0].get_properties()['bright']
             for i in b:
@@ -391,6 +401,7 @@ if __name__ == "__main__":
     
                 
         def systrayTemperature(SysTrayIcon):
+            log.info('Temperature')
             stopMusic()
             initVal=b[0].get_properties()['ct']
             

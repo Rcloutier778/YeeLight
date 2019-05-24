@@ -404,8 +404,9 @@ class ColorPicker(tk.Toplevel):
         self.red.set(r)
         self.green.set(g)
         self.blue.set(b)
+        self.hue.set(h)
         self.saturation.set(s)
-        self.value.set(v)
+        #self.value.set(v)
         self.hexa.delete(0, "end")
         self.hexa.insert(0, color.upper())
         if self.alpha_channel:
@@ -416,8 +417,9 @@ class ColorPicker(tk.Toplevel):
 
     def _change_color(self, event):
         """Respond to motion of the hsv cursor."""
-        h = self.bar.get()
-        self.square.set_hue(h)
+        v = self.bar.get()
+        #self.square.set_hue(h)
+        self.square.set_lum(v)
         (r, g, b), (h, s, v), sel_color = self.square.get()
         self.red.set(r)
         self.green.set(g)
