@@ -127,14 +127,18 @@ def on():
         for i in b:
             i.turn_on()
         
-def toggle():
+def toggle(systray=False):
     """
     Doesn't use the built in toggle command in yeelight as it sometimes fails to toggle one of the lights.
     """
     oldPower = desk.get_properties()['power']
     if oldPower == 'off':
+        if systray:
+            systrayManualOverride('on')
         on()
     else:
+        if systray:
+            systrayManualOverride('off')
         off()
 
 def colorTempFlow(temperature=3200,duration=3000, brightness=80):
@@ -264,7 +268,7 @@ if __name__ == "__main__":
     if platform.node()=='Richard-PC':
         stand = yeelight.Bulb("10.0.0.5")
         desk = yeelight.Bulb("10.0.0.10")
-        b = [stand, desk]
+        b = [desk,stand]
     else:
         #TODO vlad
         pass
@@ -282,29 +286,29 @@ if __name__ == "__main__":
         def systrayday(SysTrayIcon):
             log.info('day')
             day()
-            systrayManualOverride()
+            systrayManualOverride('day')
         def systraydusk(SysTrayIcon):
             log.info('dusk')
             dusk()
-            systrayManualOverride()
+            systrayManualOverride('dusk')
         def systraynight(SysTrayIcon):
             log.info('night')
             night()
-            systrayManualOverride()
+            systrayManualOverride('night')
         def systraysleep(SysTrayIcon):
             log.info('sleep')
             sleep()
-            systrayManualOverride()
+            systrayManualOverride('sleep')
         def systraytoggle(SysTrayIcon):
             log.info('Toggle')
-            toggle()
+            toggle(systray=True)
             rn = datetime.datetime.now()
             now=datetime.time(rn.hour, rn.minute, 0)
-            systrayManualOverride()
-            if datetime.time(22,30) <= now or now < datetime.time(1,0): #11:30, 1:00
-                systrayManualOverride()
+            #systrayManualOverride() in toggle
+            #if datetime.time(22,30) <= now or now < datetime.time(1,0): #11:30, 1:00
+            #    systrayManualOverride()
 
-        def systrayManualOverride():
+        def systrayManualOverride(newState):
             with open(os.getcwd() + '/manualOverride.txt', 'w+') as f:
                 f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
             try:
@@ -313,7 +317,7 @@ if __name__ == "__main__":
                 elif platform.node()=='Vlad':#TODO
                     systrayUser='vlad'
                 print(systrayUser)
-                data = {"eventType": "manual", "user": systrayUser}
+                data = {"eventType": "manual", "user": systrayUser, "newState": newState}
                 print('before post')
                 requests.post('http://10.0.0.17:9000', params={}, json=data)
                 print('after post')
@@ -369,7 +373,7 @@ if __name__ == "__main__":
             
             stopMusic()
             
-            systrayManualOverride()
+            systrayManualOverride('color')
             
             return
             
