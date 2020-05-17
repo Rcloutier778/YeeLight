@@ -21,7 +21,7 @@ logging.basicConfig(filename=os.getcwd()+'/log.log',
                     datefmt='%Y-%m-%d %I:%M:%S%p',
                     level=logging.INFO)
 
-b=None
+BULBS=None
 commands=['dusk','day','night','sleep', 'off', 'on','toggle','sunrise','autoset','logon']
 allcommands=commands + ['bright','brightness','rgb']
 
@@ -39,18 +39,6 @@ __SLEEP_COLOR=1500
 """
 
 def main():
-    #print(desk.get_properties())
-    
-    '''
-    import subprocess
-
-    response=subprocess.getstatusoutput('ping -n 2 10.0.0.7')
-    if 'time=' not in response[1]: #timeout, phone not present.
-        print("Phone not present.")
-        log.warning("Phone not present.")
-        off()
-        return
-    '''
     if len(sys.argv) == 1:
         print("No arguments.")
         log.warning('No arguments.')
@@ -65,7 +53,7 @@ def main():
         elif cmd in ['bright','brightness']:
             if type(sys.argv[2]) == int:
                 print("Changing brightness to %d"%int(sys.argv[2]))
-                for i in b:
+                for i in BULBS:
                     i.set_brightness(int(sys.argv[1]))
         else:
             print("Command \"%s\" not found"%cmd)
@@ -76,7 +64,7 @@ def sunrise():
         f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
     overallDuration=1200000 #1200000 == 20 min
     on()
-    for i in b:
+    for i in BULBS:
         i.set_brightness(0)
         i.set_rgb(255, 0, 0)
     time.sleep(1)
@@ -86,13 +74,13 @@ def sunrise():
                    yeelight.TemperatureTransition(degrees=3200,
                     duration=overallDuration * 0.5, brightness=80)]
     
-    for i in b:
+    for i in BULBS:
         i.start_flow(yeelight.Flow(count=1,action=yeelight.Flow.actions.stay,transitions=transitions))
 
 def brightness(val):
     #print("Brightness: ",val)
     val=int(val)
-    for i in b:
+    for i in BULBS:
         i.set_brightness(val)
 
 def day(duration=3000,auto=False):
@@ -110,7 +98,7 @@ def dusk(duration=3000,auto=False):
 def night(duration=3000,auto=False):
     if not auto:
         on()
-    colorTempFlow(__NIGHT_COLOR, duration, 80)
+    colorTempFlow(__NIGHT_COLOR, duration, 40)
 
 def sleep(duration=3000,auto=False):
     if not auto:
@@ -118,20 +106,26 @@ def sleep(duration=3000,auto=False):
     colorTempFlow(__SLEEP_COLOR,duration,20)
 
 def off():
-    while all(x.get_properties()['power'] != 'off' for x in b):
-        for i in b:
+    while True:
+        for i in [x for x in BULBS if x.get_properties()['power'] == 'on']:
             i.turn_off()
+        if all(x.get_properties()['power'] == 'off' for x in BULBS):
+            break
+        time.sleep(0.2)
 
 def on():
-    while all(x.get_properties()['power'] != 'on' for x in b):
-        for i in b:
+    while True:
+        for i in [x for x in BULBS if x.get_properties()['power'] == 'off']:
             i.turn_on()
+        if all(x.get_properties()['power'] == 'on' for x in BULBS):
+            break
+        time.sleep(0.2)
         
 def toggle(systray=False):
     """
     Doesn't use the built in toggle command in yeelight as it sometimes fails to toggle one of the lights.
     """
-    oldPower = desk.get_properties()['power']
+    oldPower = BULBS[0].get_properties()['power']
     if oldPower == 'off':
         if systray:
             systrayManualOverride('on')
@@ -145,18 +139,10 @@ def colorTempFlow(temperature=3200,duration=3000, brightness=80):
     #control all lights at once
     #makes things look more condensed
     transition=yeelight.TemperatureTransition(degrees=temperature,duration=duration,brightness=brightness)
-    for i in b:
+    for i in BULBS:
         i.start_flow(yeelight.Flow(count=1,
                                    action=yeelight.Flow.actions.stay,
                                    transitions=[transition]))
-
-
-def lightTime():
-    #TODO
-    #set light level based on time of day, hour by hour to get smoother transition than day/dusk/night/sleep
-    #day=datetime.time.
-    #time.time()
-    pass
 
 def discoverBulbs():
     bulbs=yeelight.discover_bulbs()
@@ -175,10 +161,10 @@ def rgbFlow(red=0,green=0,blue=0):
     red=int(red)
     green=int(green)
     blue=int(blue)
-    #print(b[0].get_properties())
-    bright=b[0].get_properties()['bright']
+    #print(BULBS[0].get_properties())
+    bright=BULBS[0].get_properties()['bright']
     
-    for i in b:
+    for i in BULBS:
         i.start_flow(yeelight.Flow(count=1, action=yeelight.Flow.actions.stay,
                                    transitions=[yeelight.RGBTransition(red,green,blue,brightness=int(bright))]))
 
@@ -187,15 +173,15 @@ def rgbSet(red=0, green=0, blue=0):
     red = int(red)
     green = int(green)
     blue = int(blue)
-    # print(b[0].get_properties())
-    bright = b[0].get_properties()['bright']
+    # print(BULBS[0].get_properties())
+    bright = BULBS[0].get_properties()['bright']
     
-    for i in b:
+    for i in BULBS:
         i.set_rgb(red,green,blue)
 
 
 def autoset(autosetDuration=300000):
-    if all(x.get_properties()['power']=='off' for x in b):
+    if all(x.get_properties()['power']=='off' for x in BULBS):
         log.info('Power is off, cancelling autoset')
         return -1
     #Check if system tray has been used recently to override autoset
@@ -257,8 +243,8 @@ def autoset(autosetDuration=300000):
 
 
 def stopMusic():
-    while (any(x.music_mode for x in b)):
-        for i in b:
+    while (any(x.music_mode for x in BULBS)):
+        for i in BULBS:
             try:
                 i.stop_music()
             except Exception:
@@ -266,9 +252,10 @@ def stopMusic():
 
 if __name__ == "__main__":
     if platform.node()=='Richard-PC':
-        stand = yeelight.Bulb("10.0.0.5")
+        ceiling = yeelight.Bulb("10.0.0.5")
         desk = yeelight.Bulb("10.0.0.10")
-        b = [desk,stand]
+        stand = yeelight.Bulb("10.0.0.15")
+        BULBS = [desk,ceiling, stand]
     else:
         #TODO vlad
         pass
@@ -329,10 +316,10 @@ if __name__ == "__main__":
         def systrayColor(SysTrayIcon):
             log.info('Colors')
             stopMusic()
-            initVal = b[0].get_properties()['bright']
-            initTemp = b[0].get_properties()['ct']
+            initVal = BULBS[0].get_properties()['bright']
+            initTemp = BULBS[0].get_properties()['ct']
             
-            for i in b:
+            for i in BULBS:
                 i.start_music()
             import ast
             def rgbChanged(*args):
@@ -341,7 +328,7 @@ if __name__ == "__main__":
                 brightness(__brightness.get())
             def temperatureChanged(*args):
                 print("Temp changed ",__temperature.get())
-                for i in b:
+                for i in BULBS:
                     i.set_color_temp(int(__temperature.get()))
             def pulseChanged(*args):
                 for child in root.winfo_children():
@@ -373,7 +360,7 @@ if __name__ == "__main__":
             
             stopMusic()
             
-            systrayManualOverride()
+            systrayManualOverride('color')
             
             return
             
