@@ -109,17 +109,18 @@ def off():
     while True:
         for i in [x for x in BULBS if x.get_properties()['power'] == 'on']:
             i.turn_off()
+        time.sleep(0.2)
         if all(x.get_properties()['power'] == 'off' for x in BULBS):
             break
-        time.sleep(0.2)
+        
 
 def on():
     while True:
         for i in [x for x in BULBS if x.get_properties()['power'] == 'off']:
             i.turn_on()
+        time.sleep(0.2)
         if all(x.get_properties()['power'] == 'on' for x in BULBS):
             break
-        time.sleep(0.2)
         
 def toggle(systray=False):
     """
@@ -289,6 +290,7 @@ if __name__ == "__main__":
         def systraytoggle(SysTrayIcon):
             log.info('Toggle')
             toggle(systray=True)
+            log.info('After toggle')
             rn = datetime.datetime.now()
             now=datetime.time(rn.hour, rn.minute, 0)
             #systrayManualOverride() in toggle
@@ -308,8 +310,9 @@ if __name__ == "__main__":
                 print('before post')
                 requests.post('http://10.0.0.17:9000', params={}, json=data)
                 print('after post')
-            except Exception:
-                print('failed')
+            except Exception as e:
+                log.error('Failed to post to raspberry pi!')
+                print(e)
                 pass
         
 
