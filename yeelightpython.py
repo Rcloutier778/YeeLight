@@ -14,7 +14,7 @@ from tkinter import *
 
 os.chdir('C:/Users/Richard/Documents/Coding Projects/YeeLight/')
 
-log = logging.getLogger('log')
+logger = logging.getLogger('log')
 logging.basicConfig(filename=os.getcwd() + '/log.log',
                     filemode='a',
                     format='%(asctime)s %(name)s %(levelname)s %(message)s',
@@ -22,6 +22,8 @@ logging.basicConfig(filename=os.getcwd() + '/log.log',
                     level=logging.INFO)
 
 BULBS = None
+SERVER_ACTS_NOT_CLIENT = True
+BULB_IPS = ['10.0.0.5', '10.0.0.10', '10.0.0.15', '10.0.0.20']
 commands = ['dusk', 'day', 'night', 'sleep', 'off', 'on', 'toggle', 'sunrise', 'autoset', 'logon']
 allcommands = commands + ['bright', 'brightness', 'rgb']
 
@@ -42,14 +44,14 @@ __SLEEP_COLOR = 1500
 def main():
     if len(sys.argv) == 1:
         print("No arguments.")
-        log.warning('No arguments.')
+        logger.warning('No arguments.')
         return
     else:
         cmd = sys.argv[1].lower()
         if cmd in allcommands:
             if cmd in commands:
                 if cmd != 'autoset':
-                    log.info(cmd)
+                    logger.info(cmd)
                 globals()[cmd]()
         elif cmd in ['bright', 'brightness']:
             if type(sys.argv[2]) == int:
@@ -66,7 +68,7 @@ def sunrise():
         f.write(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
     overallDuration = 1200000  # 1200000 == 20 min
     on()
-    for i in BULBS:
+    for i in get_bulbs():
         i.set_brightness(0)
         i.set_rgb(255, 0, 0)
     time.sleep(1)
@@ -76,14 +78,14 @@ def sunrise():
                    yeelight.TemperatureTransition(degrees=3200,
                                                   duration=overallDuration * 0.5, brightness=80)]
     
-    for i in BULBS:
+    for i in get_bulbs():
         i.start_flow(yeelight.Flow(count=1, action=yeelight.Flow.actions.stay, transitions=transitions))
 
 
 def brightness(val):
     # print("Brightness: ",val)
     val = int(val)
-    for i in BULBS:
+    for i in get_bulbs():
         i.set_brightness(val)
 
 
@@ -112,55 +114,64 @@ def sleep(duration=3000, auto=False):
         on()
     colorTempFlow(__SLEEP_COLOR, duration, 20)
 
-
+def get_bulbs(timeout=0.2):
+    'Get a list of bulbs that are reachable'
+    # TODO 
+    return BULBS
+    bulbs = [yeelight.Bulb(blb['ip']) for blb in yeelight.discover_bulbs(timeout) if blb['ip'] in BULB_IPS]
+    if len(bulbs) != len(BULB_IPS):
+        logger.info('Found %d bulbs, expected %d', len(bulbs), len(BULB_IPS))
+    return bulbs
+    
 def off():
+    bulbs = get_bulbs()
     while True:
-        for i in [x for x in BULBS if x.get_properties()['power'] == 'on']:
+        for i in [x for x in bulbs if x.get_properties(['power'])['power'] == 'on']:
             i.turn_off()
         time.sleep(0.2)
-        if all(x.get_properties()['power'] == 'off' for x in BULBS):
+        if all(x.get_properties(['power'])['power'] == 'off' for x in bulbs):
             break
+    
 
 
 def on():
+    bulbs = get_bulbs()
     while True:
-        for i in [x for x in BULBS if x.get_properties()['power'] == 'off']:
+        for i in [x for x in bulbs if x.get_properties(['power'])['power'] == 'off']:
             i.turn_on()
         time.sleep(0.2)
-        if all(x.get_properties()['power'] == 'on' for x in BULBS):
+        if all(x.get_properties(['power'])['power'] == 'on' and x.ensure_on() for x in bulbs):
             break
-
+    
 
 def toggle(systray=False):
     """
     Doesn't use the built in toggle command in yeelight as it sometimes fails to toggle one of the lights.
     """
-    oldPower = BULBS[0].get_properties()['power']
+    oldPower = get_bulbs(0.02)[0].get_properties(['power'])['power']
     if oldPower == 'off':
         if systray:
             systrayManualOverride('on')
-        on()
+        if not SERVER_ACTS_NOT_CLIENT:
+            on()
     else:
         if systray:
             systrayManualOverride('off')
-        off()
+        if not SERVER_ACTS_NOT_CLIENT:
+            off()
 
 
 def colorTempFlow(temperature=3200, duration=3000, brightness=80):
     # control all lights at once
     # makes things look more condensed
     transition = yeelight.TemperatureTransition(degrees=temperature, duration=duration, brightness=brightness)
-    for i in BULBS:
-        i.start_flow(yeelight.Flow(count=1,
+    for i in get_bulbs():
+        try:
+            i.start_flow(yeelight.Flow(count=1,
                                    action=yeelight.Flow.actions.stay,
                                    transitions=[transition]))
-
-
-def discoverBulbs():
-    bulbs = yeelight.discover_bulbs()
-    for bulb in bulbs:
-        print(bulb)
-
+        except Exception:
+            logger.exception('Failed for %s', str(i))
 
 def logon():
     on()
@@ -172,10 +183,10 @@ def rgbFlow(red=0, green=0, blue=0):
     red = int(red)
     green = int(green)
     blue = int(blue)
-    # print(BULBS[0].get_properties())
-    bright = BULBS[0].get_properties()['bright']
+    bulbs = get_bulbs()
+    bright = bulbs[0].get_properties(['bright'])['bright']
     
-    for i in BULBS:
+    for i in bulbs:
         i.start_flow(yeelight.Flow(count=1, action=yeelight.Flow.actions.stay,
                                    transitions=[yeelight.RGBTransition(red, green, blue, brightness=int(bright))]))
 
@@ -184,23 +195,23 @@ def rgbSet(red=0, green=0, blue=0):
     red = int(red)
     green = int(green)
     blue = int(blue)
-    # print(BULBS[0].get_properties())
-    bright = BULBS[0].get_properties()['bright']
+    bulbs = get_bulbs()
+    bright = bulbs[0].get_properties(['bright'])['bright']
     
-    for i in BULBS:
+    for i in bulbs:
         i.set_rgb(red, green, blue)
 
 
 def autoset(autosetDuration=300000):
-    if all(x.get_properties()['power'] == 'off' for x in BULBS):
-        log.info('Power is off, cancelling autoset')
+    if all(x.get_properties(['power'])['power'] == 'off' for x in get_bulbs()):
+        logger.info('Power is off, cancelling autoset')
         return -1
     # Check if system tray has been used recently to override autoset
     with open(os.getcwd() + '/manualOverride.txt', 'r') as f:
         ld = f.read().strip()
     if datetime.datetime.strptime(ld, '%Y-%m-%d %H:%M:%S') + datetime.timedelta(hours=1) > datetime.datetime.utcnow():
         print("SystemTray used recently, canceling autoset")
-        log.info("SystemTray used recently, canceling autoset")
+        logger.info("SystemTray used recently, canceling autoset")
         return -1
     
     # set light level when computer is woken up, based on time of day
@@ -228,30 +239,31 @@ def autoset(autosetDuration=300000):
     
     if dayrange[0] <= now < dayrange[1]:
         print("Day")
-        log.info("Autoset: Day")
+        logger.info("Autoset: Day")
         day(autosetDuration, True)
     elif duskrange[0] <= now < duskrange[1]:
         print("Dusk")
-        log.info("Autoset: Dusk")
+        logger.info("Autoset: Dusk")
         dusk(autosetDuration, True)
     elif nightrange[0] <= now < nightrange[1]:
         print("Night")
-        log.info("Autoset: Night")
+        logger.info("Autoset: Night")
         night(autosetDuration, True)
     elif sleeprange[0] <= now < sleeprange[1]:
         print("Sleep")
-        log.info("Autoset: Sleep")
+        logger.info("Autoset: Sleep")
         sleep(autosetDuration, True)
     elif DNDrange[0] <= now or now < DNDrange[1]:
         print("dnd")
-        log.info("Autoset: dnd")
+        logger.info("Autoset: dnd")
         off()
     return 0
 
 
 def stopMusic():
-    while (any(x.music_mode for x in BULBS)):
-        for i in BULBS:
+    bulbs = get_bulbs()
+    while any(x.music_mode for x in bulbs):
+        for i in bulbs:
             try:
                 i.stop_music()
             except Exception:
@@ -263,7 +275,8 @@ if __name__ == "__main__":
         ceiling = yeelight.Bulb("10.0.0.5")
         desk = yeelight.Bulb("10.0.0.10")
         stand = yeelight.Bulb("10.0.0.15")
-        BULBS = [desk, ceiling, stand]
+        stand2 = yeelight.Bulb("10.0.0.20")
+        BULBS = [desk, ceiling, stand, stand2]
     else:
         # TODO vlad
         pass
@@ -279,38 +292,41 @@ if __name__ == "__main__":
         
         
         def systrayday(SysTrayIcon):
-            log.info('day')
-            day()
+            logger.info('day')
+            if not SERVER_ACTS_NOT_CLIENT:
+                day()
             systrayManualOverride('day')
         
         
         def systraydusk(SysTrayIcon):
-            log.info('dusk')
-            dusk()
+            logger.info('dusk')
+            if not SERVER_ACTS_NOT_CLIENT:
+                dusk()
             systrayManualOverride('dusk')
         
         
         def systraynight(SysTrayIcon):
-            log.info('night')
-            night()
+            logger.info('night')
+            if not SERVER_ACTS_NOT_CLIENT:
+                night()
             systrayManualOverride('night')
         
         
         def systraysleep(SysTrayIcon):
-            log.info('sleep')
-            sleep()
+            logger.info('sleep')
+            if not SERVER_ACTS_NOT_CLIENT:
+                sleep()
             systrayManualOverride('sleep')
         
         
         def systraytoggle(SysTrayIcon):
-            log.info('Toggle')
+            logger.info('Toggle')
             toggle(systray=True)
-            log.info('After toggle')
+            logger.info('After toggle')
             rn = datetime.datetime.now()
             now = datetime.time(rn.hour, rn.minute, 0)
             # systrayManualOverride() in toggle
-            # if datetime.time(22,30) <= now or now < datetime.time(1,0): #11:30, 1:00
-            #    systrayManualOverride()
+
         
         
         def systrayManualOverride(newState):
@@ -322,23 +338,23 @@ if __name__ == "__main__":
                 elif platform.node() == 'Vlad':  # TODO
                     systrayUser = 'vlad'
                 print(systrayUser)
-                data = {"eventType": "manual", "user": systrayUser, "newState": newState}
+                data = {"eventType": "manual", "newState": newState}
                 print('before post')
-                requests.post('http://10.0.0.17:9000', params={}, json=data)
+                requests.post('http://10.0.0.17:9001', params={}, json=data)
                 print('after post')
             except Exception as e:
-                log.error('Failed to post to raspberry pi!')
+                logger.error('Failed to post to raspberry pi!')
                 print(e)
                 pass
         
         
         def systrayColor(SysTrayIcon):
-            log.info('Colors')
+            logger.info('Colors')
             stopMusic()
-            initVal = BULBS[0].get_properties()['bright']
-            initTemp = BULBS[0].get_properties()['ct']
+            initVal = get_bulbs()[0].get_properties(['bright'])['bright']
+            initTemp = get_bulbs()[0].get_properties(['ct'])['ct']
             
-            for i in BULBS:
+            for i in get_bulbs():
                 i.start_music()
             import ast
             def rgbChanged(*args):
@@ -349,7 +365,7 @@ if __name__ == "__main__":
             
             def temperatureChanged(*args):
                 print("Temp changed ", __temperature.get())
-                for i in BULBS:
+                for i in get_bulbs():
                     i.set_color_temp(int(__temperature.get()))
             
             def pulseChanged(*args):
@@ -378,7 +394,7 @@ if __name__ == "__main__":
             try:
                 root.destroy()
             except Exception:
-                pass
+                logger.exception('')
             
             stopMusic()
             
